@@ -28,6 +28,7 @@ class Pomodoro extends Component {
     this.timer = setInterval(() => {
       this.setState(prevState => ({
         workSec: (prevState.workSec + 59) % 60,
+        workMin: prevState.workSec === 0 ? prevState.workMin - 1 : prevState.workMin
       }))
     }, 1000)
   }
@@ -54,7 +55,7 @@ class Pomodoro extends Component {
     const secs = remaining === 0 ? 60 : remaining
     const leftOver = Math.floor(text / 60)
     this.setState(prevState => ({
-      workMin: prevState.workMin + leftOver,
+      workMin: parseInt(prevState.workMin) + leftOver,
       workSec: secs,
     }))
   }
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
   },
   pomodoro: {
     flex: 0,
-    padding: 25,
+    padding: 35,
     justifyContent: 'space-around',
     alignItems: 'center',
     borderBottomRightRadius: 400,
@@ -174,12 +175,15 @@ const styles = StyleSheet.create({
     color: '#fff'
   },
   textInput: {
+    paddingLeft: 5,
     width: 50,
     height: 30,
     borderColor: "#fff",
     borderWidth: 2,
     borderRadius: 5,
-    marginLeft: 10
+    marginLeft: 10,
+    color: '#def25c',
+    fontWeight: '700',
   },
   timeContainer: {
     flexDirection: 'column',
