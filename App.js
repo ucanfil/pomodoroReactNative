@@ -3,39 +3,37 @@ import { StyleSheet, Text, View, Button, TextInput } from 'react-native';
 
 export default class App extends Component {
   render() {
-    return (
-      <View style={styles.container}>
-        <Pomodoro />
-      </View>
-    );
+    return <Pomodoro />
   }
 }
-
-let timer
 
 class Pomodoro extends Component {
   constructor(props) {
     super(props)
     this.state = {
       workMin: 25,
-      workSec: 59,
+      workSec: 0,
       breakMin: 5,
       breakSec: 0,
-      isPaused: true,
+      isPaused: false,
       workTime: true,
     }
   }
 
   componentDidMount() {
-    timer = setInterval(() => {
-      this.setState(state => ({
-        workSec: state.workSec - 1
+    this.decrement()
+  }
+
+  decrement = () => {
+    this.timer = setInterval(() => {
+      this.setState(prevState => ({
+        workSec: (prevState.workSec + 59) % 60,
       }))
     }, 1000)
   }
 
   componentWillUnmount() {
-    clearInterval(timer)
+    clearInterval(this.timer)
   }
 
   pauseStartTimer = () => {
@@ -43,7 +41,7 @@ class Pomodoro extends Component {
       isPaused: !state.isPaused,
     }))
     if (this.state.isPaused) {
-      clearInterval(timer)
+      clearInterval(this.timer)
     }
   }
 
@@ -51,59 +49,78 @@ class Pomodoro extends Component {
     console.log(this.state.timer)
   }
 
+  handleSecs = (text) => {
+    const remaining = text % 60
+    const secs = remaining === 0 ? 60 : remaining
+    const leftOver = Math.floor(text / 60)
+    this.setState(prevState => ({
+      workMin: prevState.workMin + leftOver,
+      workSec: secs,
+    }))
+  }
+
+  handleMins = () => {
+    
+  }
 
   render() {
     return (
-      <View style={styles.pomodoro}>
-        <Text style={styles.heading}>pomodoro timer</Text>
-        <Text style={styles.timer}>{this.state.workMin}:{this.state.workSec}</Text>
-        <View style={styles.flexRow}>
-          <Button title={this.state.isPaused ? 'Start' : 'Pause'} style={styles.button} onPress={this.pauseStartTimer} />
-          <Button title='Reset' style={styles.button} onPress={this.resetTimer} />
-        </View>
-        <View style={styles.flexRow}>
-          <Text style={styles.bold}>Work Time</Text>
-          <View style={styles.timeContainer}>
-            <Text style={styles.time}>Mins:</Text>
-            <TextInput
-              style={styles.textInput}
-              keyboardType={'numeric'}
-            >
-            </TextInput>
+      <View style={styles.container}>
+        <View style={styles.pomodoro}>
+          <Text style={styles.heading}>pomodoro timer</Text>
+          <Text style={styles.timer}>{this.state.workMin}:{this.state.workSec}</Text>
+          <View style={styles.flexRow}>
+            <Button title={this.state.isPaused ? 'Start' : 'Pause'} style={styles.button} onPress={this.pauseStartTimer} />
+            <Button title='Reset' style={styles.button} onPress={this.resetTimer} />
           </View>
-          <View style={styles.timeContainer}>
-            <Text style={styles.time}>Secs:</Text>
-            <TextInput
-              style={styles.textInput}
-              keyboardType={'numeric'}
-            >
-            </TextInput>
+          <View style={styles.flexRow}>
+            <Text style={styles.bold}>Work Time</Text>
+            <View style={styles.timeContainer}>
+              <Text style={styles.time}>Mins:</Text>
+              <TextInput
+                style={styles.textInput}
+                onChangeText={(text) => this.setState({ workMin: text })
+                }
+                value={this.state.workMin}
+                keyboardType={'numeric'}
+              >
+              </TextInput>
+            </View>
+            <View style={styles.timeContainer}>
+              <Text style={styles.time}>Secs:</Text>
+              <TextInput
+                style={styles.textInput}
+                keyboardType={'numeric'}
+                onChangeText={(text) => this.handleSecs(text)}
+                value={this.state.workSec}
+              >
+              </TextInput>
+            </View>
           </View>
-        </View>
-        <View style={styles.flexRow}>
-          <Text style={styles.bold}>Break Time</Text>
-          <View style={styles.timeContainer}>
-            <Text style={styles.time}>Mins:</Text>
-            <TextInput
-              style={styles.textInput}
-              keyboardType={'numeric'}
-            >
-            </TextInput>
-          </View>
-          <View style={styles.timeContainer}>
-            <Text style={styles.time}>Secs:</Text>
-            <TextInput
-              style={styles.textInput}
-              keyboardType={'numeric'}
-            >
-            </TextInput>
+          <View style={styles.flexRow}>
+            <Text style={styles.bold}>Break Time</Text>
+            <View style={styles.timeContainer}>
+              <Text style={styles.time}>Mins:</Text>
+              <TextInput
+                style={styles.textInput}
+                keyboardType={'numeric'}
+              >
+              </TextInput>
+            </View>
+            <View style={styles.timeContainer}>
+              <Text style={styles.time}>Secs:</Text>
+              <TextInput
+                style={styles.textInput}
+                keyboardType={'numeric'}
+              >
+              </TextInput>
+            </View>
           </View>
         </View>
       </View>
     )
   }
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -170,8 +187,10 @@ const styles = StyleSheet.create({
   },
   time: {
     marginBottom: 5,
+    color: '#def25c'
   },
   bold: {
-    fontWeight: '700'
+    fontWeight: '700',
+    color: '#def25c'
   }
-});
+})
