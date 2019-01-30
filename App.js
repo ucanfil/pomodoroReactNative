@@ -12,39 +12,44 @@ class CounterForm extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      mins: 25,
-      secs: 0
+      workMins: 25,
+      workSecs: 0,
+      breakMins: 5,
+      breakSecs: 0,
     }
   }
 
-  componentWillReceiveProps(nextProps) {
-    nextProps.isReset !== this.props.isReset ?
-    this.props.onHandleReset(this.state.mins, this.state.secs) : null
+  handleWorkSecs = (text) => {
+    const secs = text % 60
+    const leftOver = Math.floor(text / 60)
+    this.setState(prevState => ({
+      workMins: parseInt(prevState.workMins) + leftOver,
+      workSecs: secs,
+    }))
   }
 
-  handleSecs = async (text) => {
-    const remaining = text % 60
-    const secs = remaining
+  handleBreakSecs = (text) => {
+    const secs = text % 60
     const leftOver = Math.floor(text / 60)
-    await this.setState(prevState => ({
-      mins: parseInt(prevState.mins) + leftOver,
-      secs: secs,
-    }), () => this.props.onChangeSecs(this.state.secs))
+    this.setState(prevState => ({
+      breakMins: parseInt(prevState.breakMins) + leftOver,
+      breakSecs: secs,
+    }))
   }
 
   render() {
     return (
       <View style={styles.flexRow}>
-        <Text style={styles.bold}>{this.props.title}</Text>
+        <Text style={styles.bold}>Work Time</Text>
         <View style={styles.timeContainer}>
           <Text style={styles.time}>Mins:</Text>
           <TextInput
             style={styles.textInput}
             onChangeText={(text) => {
-              this.setState({ mins: text })
-              this.props.isWorkTime ? this.props.onChangeMins(text) : null
+              this.setState({ workMins: text })
             }}
-            value={this.state.mins}
+            onSubmitEditing={() => this.props.onChangeWorkMins(this.state.workMins)}
+            value={this.state.workMins.toString()}
             keyboardType={'numeric'}
           >
           </TextInput>
@@ -55,9 +60,35 @@ class CounterForm extends Component {
             style={styles.textInput}
             keyboardType={'numeric'}
             onChangeText={(text) => {
-              this.props.isWorkTime ? this.handleSecs(text) : null
+              this.handleWorkSecs(text)
             }}
-            value={this.state.secs}
+            onSubmitEditing={() => this.props.onChangeWorkSecs(this.state.workSecs)}
+            value={this.state.workSecs.toString()}
+          >
+          </TextInput>
+        </View>
+        <Text style={styles.bold}>Break Time</Text>
+        <View style={styles.timeContainer}>
+          <Text style={styles.time}>Mins:</Text>
+          <TextInput
+            style={styles.textInput}
+            onChangeText={(text) => {
+              this.setState({ breakMins: text })
+            }}
+            onSubmitEditing={() => this.props.onChangeBreakMins(this.state.breakMins)}
+            value={this.state.breakMins.toString()}
+            keyboardType={'numeric'}
+          >
+          </TextInput>
+        </View>
+        <View style={styles.timeContainer}>
+          <Text style={styles.time}>Secs:</Text>
+          <TextInput
+            style={styles.textInput}
+            keyboardType={'numeric'}
+            onChangeText={(text) => this.handleBreakSecs(text)}
+            onSubmitEditing={() => this.props.onChangeBreakSecs(this.state.breakSecs)}
+            value={this.state.breakSecs.toString()}
           >
           </TextInput>
         </View>
@@ -66,20 +97,42 @@ class CounterForm extends Component {
   }
 }
 
-class Pomodoro extends Component {
+class Counter extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      mins: 25,
-      secs: 0,
-      isPaused: false,
-      workTime: false,
+      mins: 0,
+      secs: 5,
       isReset: false,
+      isPaused: false,
     }
+  }
+
+  componentWillMount() {
+    this.setState({
+      mins: this.props.mins,
+      secs: this.props.secs
+    })
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    if (this.state.mins == 0 && nextState.secs == 0) {
+      console.log('it triggered')
+      this.props.onHandleWorkTime()
+      return false
+    }
+    return true
   }
 
   componentDidMount() {
     this.decrement()
+  }
+
+  componentWillReceiveProps(nextProps) {
+    this.setState({
+      mins: nextProps.mins,
+      secs: nextProps.secs
+    })
   }
 
   decrement = () => {
@@ -87,9 +140,7 @@ class Pomodoro extends Component {
       this.setState(prevState => ({
         secs: (prevState.secs + 59) % 60,
         mins: prevState.secs === 0 ? prevState.mins - 1 : prevState.mins,
-        workTime: prevState.mins === 0 && prevState.secs === 0 ? !prevState.workTime : prevState.workTime
-      }))
-    }, 1000)
+      }))}, 1000)
   }
 
   componentWillUnmount() {
@@ -100,7 +151,7 @@ class Pomodoro extends Component {
     this.setState((prevState) => ({
       isPaused: !prevState.isPaused
     }), () => {
-    this.state.isPaused ? clearInterval(this.timer) : this.decrement()
+    this.state.isPaused ? this.pauseDecrement() : this.decrement()
     })
   }
 
@@ -121,61 +172,115 @@ class Pomodoro extends Component {
     })
   }
 
-  changeSecs = (secs) => {
-    this.setState({ secs })
+  render() {
+    return (
+      <View style={styles.flexRow}>
+        {/* <View style={styles.flexRow}> */}
+          <Text style={styles.timer}>
+            {this.state.mins.toString().length === 1 ? `0${this.state.mins}` : this.state.mins}:
+            {this.state.secs.toString().length === 1 ? `0${this.state.secs}` : this.state.secs}
+          </Text>
+        {/* </View> */}
+        <Button
+          title={this.state.isPaused ? 'Start' : 'Pause'}
+          style={styles.button}
+          onPress={this.togglePause}
+        />
+        <Button
+          title='Reset'
+          style={styles.button}
+          onPress={this.props.onHandleReset}
+        />
+      </View>
+    )
+  }
+}
+
+class Pomodoro extends Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      workMins: 0,
+      workSecs: 5,
+      breakMins: 0,
+      breakSecs: 5,
+      isPaused: false,
+      isReset: false,
+      isWorkTime: true,
+    }
   }
 
-  changeMins = (mins) => {
-    this.setState({ mins })
+  shouldComponentUpdate(nextProps, nextState) {
+    if (this.state.isWorkTime && (this.state.breakMins !== nextState.breakMins ||
+      this.state.breakSecs !== nextState.breakSecs)) {
+        return false
+    } else if (!this.state.isWorkTime && (this.state.workMins !== nextState.workMins ||
+      this.state.workSecs !== nextState.workSecs)) {
+        return false
+    }
+    if (nextState.isWorkTime !== this.state.isWorkTime) {
+      // console.log(this.state.isWorkTime)
+      return true
+    }
+    return true
   }
+
+  changeWorkSecs = (secs) => {
+    this.setState({ workSecs: secs })
+  }
+
+  changeWorkMins = (mins) => {
+    this.setState({ workMins: mins })
+  }
+
+  changeBreakSecs = (secs) => {
+    this.setState({ breakSecs: secs })
+  }
+
+  changeBreakMins = (mins) => {
+    this.setState({ breakMins: mins })
+  }
+
+  handleReset = () => {
+    this.setState((prevState) => ({
+      isReset: !prevState.isReset
+    }))
+  }
+
+  handleWorkTime = () => (
+    this.setState((prevState) => ({ isWorkTime: !prevState.isWorkTime }))
+  )
 
   render() {
     return (
       <View style={styles.container}>
         <View style={styles.pomodoro}>
           <Text style={styles.heading}>pomodoro timer</Text>
-          <Text style={styles.timer}>{this.state.mins}:{this.state.secs}</Text>
-          <View style={styles.flexRow}>
-            <Button
-              title={this.state.isPaused ? 'Start' : 'Pause'}
-              style={styles.button}
-              onPress={this.togglePause}
+          {this.state.isWorkTime ? (
+            <Counter
+              mins={this.state.workMins}
+              secs={this.state.workSecs}
+              onHandleReset={this.handleReset}
+              isReset={this.state.isReset}
+              onHandleWorkTime={this.handleWorkTime}
             />
-            <Button
-              title='Reset'
-              style={styles.button}
-              onPress={this.resetTimer}
+          ) : (
+            <Counter
+              mins={this.state.breakMins}
+              secs={this.state.breakSecs}
+              onHandleReset={this.handleReset}
+              isReset={this.state.isReset}
+              onHandleWorkTime={this.handleWorkTime}
             />
-          </View>
+          )}
           <CounterForm
             title='Work Time'
-            mins={this.state.mins}
-            secs={this.state.secs}
-            isWorkTime={this.state.workTime}
-            onChangeMins={this.changeMins}
-            onChangeSecs={this.changeSecs}
-            onHandleReset={this.handleReset}
-            isReset={this.state.isReset}
+            isWorkTime={this.state.isWorkTime}
+            onChangeWorkMins={this.changeWorkMins}
+            onChangeWorkSecs={this.changeWorkSecs}
+            onChangeBreakMins={this.changeBreakMins}
+            onChangeBreakSecs={this.changeBreakSecs}
           />
-          {/* <View style={styles.flexRow}>
-            <Text style={styles.bold}>Break Time</Text>
-            <View style={styles.timeContainer}>
-              <Text style={styles.time}>Mins:</Text>
-              <TextInput
-                style={styles.textInput}
-                keyboardType={'numeric'}
-              >
-              </TextInput>
-            </View>
-            <View style={styles.timeContainer}>
-              <Text style={styles.time}>Secs:</Text>
-              <TextInput
-                style={styles.textInput}
-                keyboardType={'numeric'}
-              >
-              </TextInput>
-            </View>
-          </View> */}
         </View>
       </View>
     )
@@ -214,10 +319,14 @@ const styles = StyleSheet.create({
   timer: {
     fontSize: 40,
     color: '#fff',
+    flex: 1,
+    borderWidth: 1,
+    borderColor: 'red'
   },
   flexRow: {
     flexDirection: 'row',
     flex: 1,
+    flexWrap: 'wrap',
     height: 40,
     width: 200,
     justifyContent: 'space-between',
